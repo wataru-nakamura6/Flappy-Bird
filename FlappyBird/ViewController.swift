@@ -25,6 +25,7 @@ class ViewController: UIViewController {
                 // ビューにシーンを表示する
         skView.presentScene(scene)
     }
+    
     override var prefersStatusBarHidden: Bool {
         get {
             return true
