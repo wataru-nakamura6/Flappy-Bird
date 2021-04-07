@@ -280,13 +280,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // 2種類のテクスチャを交互に変更するアニメーションを作成
         let texturesAnimation = SKAction.animate(with: [birdTextureA, birdTextureB], timePerFrame: 0.2)
         let flap = SKAction.repeatForever(texturesAnimation)
-
+        let movebird = SKAction.moveBy(x: -self.frame.width*100, y: 0, duration: 900)
+        
         // スプライトを作成
         bird = SKSpriteNode(texture: birdTextureA)
         
         bird.position = CGPoint(x: self.frame.size.width * 0.4, y:self.frame.size.height * 0.7)
         bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2 )
-        let scroll = SKAction.moveTo(x: -birdTextureA.size().width / 2, duration: 10)
         // 衝突した時に回転させない
         bird.physicsBody?.allowsRotation = false    // ←追加
 
@@ -298,8 +298,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // アニメーションを設定
         bird.run(flap)
-        bird.run(scroll)
-
+        bird.run(movebird)
+    
         // スプライトを追加する
         addChild(bird)
     }
