@@ -92,7 +92,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.chikuwaNode.addChild(Chikuwa)
         }
         )
-        let waitChikuwa = SKAction.wait(forDuration: 2)
+        
+        let randomtime = Double.random(in: 2..<10)
+        let waitChikuwa = SKAction.wait(forDuration: randomtime)
         
         let repeatForeverChikuwaAnimation = SKAction.repeatForever(SKAction.sequence([Chikuwacreate , waitChikuwa]))
 
@@ -281,10 +283,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         // スプライトを作成
         bird = SKSpriteNode(texture: birdTextureA)
-        bird.position = CGPoint(x: self.frame.size.width * 0.3, y:self.frame.size.height * 0.7)
         
+        bird.position = CGPoint(x: self.frame.size.width * 0.4, y:self.frame.size.height * 0.7)
         bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2 )
-        
+        let scroll = SKAction.moveTo(x: -birdTextureA.size().width / 2, duration: 10)
         // 衝突した時に回転させない
         bird.physicsBody?.allowsRotation = false    // ←追加
 
@@ -293,8 +295,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory    // ←追加
         bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory    // ←追加
         
+        
         // アニメーションを設定
         bird.run(flap)
+        bird.run(scroll)
 
         // スプライトを追加する
         addChild(bird)
@@ -307,7 +311,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.physicsBody?.velocity = CGVector.zero
 
         // 鳥に縦方向の力を与える
-        bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 15))
+        bird.physicsBody?.applyImpulse(CGVector(dx: 3, dy: 15))
         }else if self.bird.speed == 0{
             restart()
         }else{
@@ -355,7 +359,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         score = 0
         scoreLabelNode.text = "Score:\(score)" 
 
-        bird.position = CGPoint(x: self.frame.size.width * 0.3, y:self.frame.size.height * 0.7)
+        bird.position = CGPoint(x: self.frame.size.width * 0.4, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
         bird.zRotation = 0
