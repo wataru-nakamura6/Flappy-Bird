@@ -6,9 +6,18 @@
 //
 
 import SpriteKit
+import AVFoundation
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
+    //var backgroundMusic = SKAudioNode()
+    //let chikuwaGet = SKAction.playSoundFileNamed("ちくわ.mp3", waitForCompletion: false)
+    //let gameover = SKAction.playSoundFileNamed("ゲームオーバー.mp3", waitForCompletion: false)
+    //let musicURL = Bundle.main.url(forResource: "BGM", withExtension: "mp3")
+    
+    var BGM: AVAudioPlayer!
+    var Gameover: AVAudioPlayer!
+    var Get: AVAudioPlayer!
     var scrollNode:SKNode!
     var wallNode:SKNode!
     var chikuwaNode:SKNode!
@@ -21,7 +30,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let wallCategory: UInt32 = 1 << 2       // 0...00100
     let scoreCategory: UInt32 = 1 << 3      // 0...01000
     let chikuwacategory: UInt32 = 1 << 4
-
     
     // スコア用
     var score = 0  // ←追加
@@ -30,15 +38,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var scoreLabelNode:SKLabelNode!    // ←追加
     var bestScoreLabelNode:SKLabelNode!    // ←追加
     var itemLabelNode:SKLabelNode!
+    var itemget:SKLabelNode!
     
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
         // 重力を設定
-        physicsWorld.gravity = CGVector(dx: 0, dy: -4)    // ←追加
+        physicsWorld.gravity = CGVector(dx: -0.9, dy: -4)    // ←追加
         physicsWorld.contactDelegate = self // ←追加
         
         // 背景色を設定
         backgroundColor = UIColor(red: 0.15, green: 0.75, blue: 0.90, alpha: 1)
+        
+        if let music = NSDataAsset(name: "BGM") {
+            BGM = try? AVAudioPlayer(data: music.data)
+            BGM?.play()
+        }
         
         // スクロールするスプライトの親ノード
         scrollNode = SKNode()
@@ -57,14 +71,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupChikuwa()
     }
     
+    //今は手紙ですが元々はちくわの予定でした
     func setupChikuwa(){
-        let chikuwaTexture = SKTexture(imageNamed: "chikuwa")
+        let chikuwaTexture = SKTexture(imageNamed: "手紙")
         
         chikuwaTexture.filteringMode = .linear
         
         let movingDistance = CGFloat(self.frame.size.width + chikuwaTexture.size().width)
         
-        let moveChikuwa = SKAction.moveBy(x: -movingDistance, y: 0, duration: 4)
+        let moveChikuwa = SKAction.moveBy(x: -movingDistance, y: 0, duration: 5.5)
         
         let removeChikuwa = SKAction.removeFromParent()
         
@@ -80,23 +95,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let Chikuwacreate = SKAction.run({
             let Chikuwa = SKSpriteNode(texture: chikuwaTexture)
-            
             let random_y = CGFloat.random(in: 0..<random_y_range)
             let under_chikuwa_y = under_y + random_y
             
             Chikuwa.position = CGPoint(x: self.frame.size.width + chikuwaTexture.size().width / 2, y: under_chikuwa_y )
-            Chikuwa.zPosition = 50
-            Chikuwa.size = CGSize(width: Chikuwa.size.width*0.1, height: Chikuwa.size.height*0.1)
-        
+            Chikuwa.zPosition = -10
+            Chikuwa.size = CGSize(width: Chikuwa.size.width*0.05, height: Chikuwa.size.height*0.05)
+            
+            Chikuwa.physicsBody = SKPhysicsBody(rectangleOf: Chikuwa.size)
+            Chikuwa.physicsBody?.categoryBitMask = self.chikuwacategory    // ←追加
+            //Chikuwa.physicsBody?.contactTestBitMask = self.birdCategory
+            Chikuwa.physicsBody?.isDynamic = false
+            Chikuwa.physicsBody?.collisionBitMask = self.birdCategory
+            //Chikuwa.physicsBody?.affectedByGravity(CGVector(dx: 0, dy: -1))
             Chikuwa.run(repeatChikuwaAnimation)
             self.chikuwaNode.addChild(Chikuwa)
         }
         )
         
-        let randomtime = Double.random(in: 2..<10)
+        let randomtime = Double.random(in: 3 ..< 9)
         let waitChikuwa = SKAction.wait(forDuration: randomtime)
         
-        let repeatForeverChikuwaAnimation = SKAction.repeatForever(SKAction.sequence([Chikuwacreate , waitChikuwa]))
+        let repeatForeverChikuwaAnimation = SKAction.repeatForever(SKAction.sequence([waitChikuwa, Chikuwacreate]))
 
         chikuwaNode.run(repeatForeverChikuwaAnimation)
     }
@@ -154,9 +174,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let needCloudNumber = Int(self.frame.size.width / cloudTexture.size().width) + 2
         
         let moveCloud = SKAction.moveBy(x: -cloudTexture.size().width, y: 0, duration: 20)
-        
         let resetCloud = SKAction.moveBy(x: cloudTexture.size().width, y: 0, duration: 0)
-        
         let repeatCloud = SKAction.repeatForever(SKAction.sequence([moveCloud, resetCloud]))
         
         for i in 0..<needCloudNumber {
@@ -180,6 +198,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func setupWall(){
         let wallTexture = SKTexture(imageNamed: "wall")
         wallTexture.filteringMode = .linear
+        //wallTexture.size = CGSize(width: wallTexture.size.width, height: wallTexture.size.height*1.5)
 
         // 移動する距離を計算
         let movingDistance = CGFloat(self.frame.size.width + wallTexture.size().width)
@@ -200,13 +219,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let slit_length = birdSize.height * 3
 
         // 隙間位置の上下の振れ幅を鳥のサイズの2.5倍とする
-        let random_y_range = birdSize.height * 2.5
+        let random_y_range = birdSize.height * 7
 
         // 下の壁のY軸下限位置(中央位置から下方向の最大振れ幅で下の壁を表示する位置)を計算
         let groundSize = SKTexture(imageNamed: "ground").size()
         let center_y = groundSize.height + (self.frame.size.height - groundSize.height) / 2
         let under_wall_lowest_y = center_y - slit_length / 2 - wallTexture.size().height / 2 - random_y_range / 2
-
+        
         // 壁を生成するアクションを作成
         let createWallAnimation = SKAction.run({
             // 壁関連のノードを乗せるノードを作成
@@ -217,14 +236,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // 0〜random_y_rangeまでのランダム値を生成
             let random_y = CGFloat.random(in: 0..<random_y_range)
             // Y軸の下限にランダムな値を足して、下の壁のY座標を決定
-            let under_wall_y = under_wall_lowest_y + random_y
+            let under_wall_y = under_wall_lowest_y + random_y - wallTexture.size().height / 3
 
             // 下側の壁を作成
             let under = SKSpriteNode(texture: wallTexture)
             under.position = CGPoint(x: 0, y: under_wall_y)
-            
+            under.size = CGSize(width: under.size.width, height: under.size.height*1.5)
+
             // スプライトに物理演算を設定する
-            under.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            under.physicsBody = SKPhysicsBody(rectangleOf: under.size)
             under.physicsBody?.categoryBitMask = self.wallCategory    // ←追加
 
             // 衝突の時に動かないように設定する
@@ -234,10 +254,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             // 上側の壁を作成
             let upper = SKSpriteNode(texture: wallTexture)
-            upper.position = CGPoint(x: 0, y: under_wall_y + wallTexture.size().height + slit_length)
-
+            upper.size = CGSize(width: upper.size.width, height: upper.size.height*1.5)
+            upper.position = CGPoint(x: 0, y: under_wall_y + under.size.height + slit_length )
+            
             // スプライトに物理演算を設定する
-            upper.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())    // ←追加
+            upper.physicsBody = SKPhysicsBody(rectangleOf: upper.size)    // ←追加
             upper.physicsBody?.categoryBitMask = self.wallCategory    // ←追加
 
             // 衝突の時に動かないように設定する
@@ -252,7 +273,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             scoreNode.physicsBody?.isDynamic = false
             scoreNode.physicsBody?.categoryBitMask = self.scoreCategory
             scoreNode.physicsBody?.contactTestBitMask = self.birdCategory
-
+            
             wall.addChild(scoreNode)
             // --- ここまで追加 ---
 
@@ -280,7 +301,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // 2種類のテクスチャを交互に変更するアニメーションを作成
         let texturesAnimation = SKAction.animate(with: [birdTextureA, birdTextureB], timePerFrame: 0.2)
         let flap = SKAction.repeatForever(texturesAnimation)
-        let movebird = SKAction.moveBy(x: -self.frame.width*100, y: 0, duration: 900)
         
         // スプライトを作成
         bird = SKSpriteNode(texture: birdTextureA)
@@ -292,13 +312,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         // 衝突のカテゴリー設定
         bird.physicsBody?.categoryBitMask = birdCategory    // ←追加
-        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory    // ←追加
-        bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory    // ←追加
+        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory //| chikuwacategory// ←追加
+        bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory | chikuwacategory  // ←追加
         
         
         // アニメーションを設定
         bird.run(flap)
-        bird.run(movebird)
     
         // スプライトを追加する
         addChild(bird)
@@ -311,11 +330,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.physicsBody?.velocity = CGVector.zero
 
         // 鳥に縦方向の力を与える
-        bird.physicsBody?.applyImpulse(CGVector(dx: 3, dy: 15))
+        bird.physicsBody?.applyImpulse(CGVector(dx: 3, dy: 13))
         }else if self.bird.speed == 0{
             restart()
-        }else{
-            return
         }
     }
     
@@ -330,23 +347,51 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("ScoreUp")
             score += 1
             scoreLabelNode.text = "Score:\(score)"
-            
+            contact.bodyA.node?.removeFromParent()
+            //後ろに下がって触れた際2点入ってしまう
+          
             // ベストスコア更新か確認する --- ここから ---
-             var bestScore = userDefaults.integer(forKey: "BEST")
-             if score > bestScore {
-                 bestScore = score
+            var bestScore = userDefaults.integer(forKey: "BEST")
+            if score + item > bestScore {
+                 bestScore = score + item
                  bestScoreLabelNode.text = "Best Score:\(bestScore)"
                  userDefaults.set(bestScore, forKey: "BEST")
                  userDefaults.synchronize()
              }
-        } else {
+        }else if (contact.bodyA.categoryBitMask & chikuwacategory) == chikuwacategory || (contact.bodyB.categoryBitMask & chikuwacategory) == chikuwacategory {
+            print("ItemGet")
+            item += 1
+            itemLabelNode.text = "Item:\(item)"
+            contact.bodyA.node?.removeFromParent()
+            if let get = NSDataAsset(name: "ぷよん") {
+                Get = try? AVAudioPlayer(data: get.data)
+                Get?.play()
+            }
+            
+            print("SE:played")
+            
+            var bestScore = userDefaults.integer(forKey: "BEST")
+            if score + item > bestScore {
+                bestScore = score + item
+                bestScoreLabelNode.text = "Best Score:\(bestScore)"
+                userDefaults.set(bestScore, forKey: "BEST")
+                userDefaults.synchronize()
+            }
+        }else{
             // 壁か地面と衝突した
             print("GameOver")
 
             // スクロールを停止させる
             scrollNode.speed = 0
+            physicsWorld.gravity = CGVector(dx: 0, dy: -4)
 
             bird.physicsBody?.collisionBitMask = groundCategory
+            
+            BGM.stop()
+            if let gameover = NSDataAsset(name: "ゲームオーバー") {
+                Gameover = try? AVAudioPlayer(data: gameover.data)
+                Gameover?.play()
+            }
 
             let roll = SKAction.rotate(byAngle: CGFloat(Double.pi) * CGFloat(bird.position.y) * 0.01, duration:1)
             bird.run(roll, completion:{
@@ -355,19 +400,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
+    
     func restart() {
         score = 0
-        scoreLabelNode.text = "Score:\(score)" 
-
+        item = 0
+        scoreLabelNode.text = "Score:\(score)"
+        itemLabelNode.text = "item:\(item)"
+        Gameover.stop()
+        if let music = NSDataAsset(name: "BGM") {
+            BGM = try? AVAudioPlayer(data: music.data)
+            BGM?.play()
+        }
+    
         bird.position = CGPoint(x: self.frame.size.width * 0.4, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
         bird.zRotation = 0
 
         wallNode.removeAllChildren()
+        chikuwaNode.removeAllChildren()
 
         bird.speed = 1
         scrollNode.speed = 1
+        physicsWorld.gravity = CGVector(dx: -1, dy: -4)
     }
     
     func setupScoreLabel() {
@@ -405,3 +460,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
 //回転中に次を始めると回転したまま始まる 解決
 //通るたびにスピードを上げたい
+//}else if (contact.bodyA.categoryBitMask & chikuwacategory) == chikuwacategory || (contact.bodyB.categoryBitMask & chikuwacategory) == chikuwacategory {
+    
+  //  print("ItemGet")
+ //   item += 1
+//    itemLabelNode.text = "Item:\(item)"
+    
+//    var bestScore = userDefaults.integer(forKey: "BEST")
+//    if score + item > bestScore {
+ //        bestScore = score + item
+  //       bestScoreLabelNode.text = "Best Score:\(bestScore)"
+  //       userDefaults.set(bestScore, forKey: "BEST")
+   //      userDefaults.synchronize()
+  //  }
+//}
+
