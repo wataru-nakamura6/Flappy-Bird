@@ -10,11 +10,6 @@ import AVFoundation
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
-    //var backgroundMusic = SKAudioNode()
-    //let chikuwaGet = SKAction.playSoundFileNamed("ちくわ.mp3", waitForCompletion: false)
-    //let gameover = SKAction.playSoundFileNamed("ゲームオーバー.mp3", waitForCompletion: false)
-    //let musicURL = Bundle.main.url(forResource: "BGM", withExtension: "mp3")
-    
     var BGM: AVAudioPlayer!
     var Gameover: AVAudioPlayer!
     var Get: AVAudioPlayer!
@@ -79,19 +74,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let movingDistance = CGFloat(self.frame.size.width + chikuwaTexture.size().width)
         
-        let moveChikuwa = SKAction.moveBy(x: -movingDistance, y: 0, duration: 5.5)
-        
+        let moveChikuwa = SKAction.moveBy(x: -movingDistance, y: -chikuwaTexture.size().height / 5, duration: 5.5)
         let removeChikuwa = SKAction.removeFromParent()
-        
         let repeatChikuwaAnimation = SKAction.repeatForever(SKAction.sequence([moveChikuwa, removeChikuwa]))
+        
+        let rotateChikuwa = SKAction.rotate(byAngle : .pi / 4, duration: 0.6)
+        let rerotateChikuwa = SKAction.rotate(byAngle: -.pi / 4, duration: 0.6)
+        let repeatchikuwa = SKAction.repeatForever(SKAction.sequence([rotateChikuwa, rerotateChikuwa]))
         
         let birdSize = SKTexture(imageNamed: "bird_a").size()
 
         let random_y_range = birdSize.height * 3.5
 
-        let slit_length = birdSize.height * 3
+        //let slit_length = birdSize.height * 3
         let groundSize = SKTexture(imageNamed: "ground").size()
-        let under_y = groundSize.height + (self.frame.size.height - groundSize.height) / 2 - slit_length / 2
+        let under_y = groundSize.height + (self.frame.size.height - groundSize.height) / 2
 
         let Chikuwacreate = SKAction.run({
             let Chikuwa = SKSpriteNode(texture: chikuwaTexture)
@@ -109,6 +106,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             Chikuwa.physicsBody?.collisionBitMask = self.birdCategory
             //Chikuwa.physicsBody?.affectedByGravity(CGVector(dx: 0, dy: -1))
             Chikuwa.run(repeatChikuwaAnimation)
+            Chikuwa.run(repeatchikuwa)
             self.chikuwaNode.addChild(Chikuwa)
         }
         )
@@ -459,19 +457,5 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 }
 
 //回転中に次を始めると回転したまま始まる 解決
-//通るたびにスピードを上げたい
-//}else if (contact.bodyA.categoryBitMask & chikuwacategory) == chikuwacategory || (contact.bodyB.categoryBitMask & chikuwacategory) == chikuwacategory {
-    
-  //  print("ItemGet")
- //   item += 1
-//    itemLabelNode.text = "Item:\(item)"
-    
-//    var bestScore = userDefaults.integer(forKey: "BEST")
-//    if score + item > bestScore {
- //        bestScore = score + item
-  //       bestScoreLabelNode.text = "Best Score:\(bestScore)"
-  //       userDefaults.set(bestScore, forKey: "BEST")
-   //      userDefaults.synchronize()
-  //  }
-//}
+
 
