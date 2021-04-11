@@ -68,7 +68,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     //今は手紙ですが元々はちくわの予定でした
     func setupChikuwa(){
-        let chikuwaTexture = SKTexture(imageNamed: "手紙")
+        let chikuwaTexture = SKTexture(imageNamed: "letter")
         
         chikuwaTexture.filteringMode = .linear
         
@@ -88,6 +88,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         //let slit_length = birdSize.height * 3
         let groundSize = SKTexture(imageNamed: "ground").size()
+        //落下してくるので隙間分上に配置した
         let under_y = groundSize.height + (self.frame.size.height - groundSize.height) / 2
 
         let Chikuwacreate = SKAction.run({
@@ -361,7 +362,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             item += 1
             itemLabelNode.text = "Item:\(item)"
             contact.bodyA.node?.removeFromParent()
-            if let get = NSDataAsset(name: "ぷよん") {
+            if let get = NSDataAsset(name: "puyon") {
                 Get = try? AVAudioPlayer(data: get.data)
                 Get?.play()
             }
@@ -386,7 +387,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             bird.physicsBody?.collisionBitMask = groundCategory
             
             BGM.stop()
-            if let gameover = NSDataAsset(name: "ゲームオーバー") {
+            if let gameover = NSDataAsset(name: "GAMEOVER") {
                 Gameover = try? AVAudioPlayer(data: gameover.data)
                 Gameover?.play()
             }
